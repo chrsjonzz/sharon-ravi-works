@@ -1,14 +1,11 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import AudioPlayer from './components/AudioPlayer';
+import { useState, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import SimpleAudioPlayer from './components/SimpleAudioPlayer';
 import VideoPlayer from './components/VideoPlayer';
 import Gallery from './components/Gallery';
 import UploadHandler from './components/UploadHandler';
-import { FaMusic, FaVideo, FaImage, FaUpload, FaPhone, FaWhatsapp, FaEnvelope } from 'react-icons/fa';
+import { FaMusic, FaVideo, FaImage, FaUpload, FaPhone, FaWhatsapp, FaEnvelope, FaTimes } from 'react-icons/fa';
 import './App.css';
-
-// Import audio directly as a URL instead of as a module
-const sampleTrackUrl = '/assets/TriTuf.wav';
 
 interface MediaItem {
   id: string;
@@ -18,44 +15,89 @@ interface MediaItem {
   thumbnail?: string;
   description?: string;
   artist?: string;
+  duration?: number;
 }
+
 
 function App() {
   const [activeTab, setActiveTab] = useState<'featured' | 'gallery' | 'contact'>('featured');
-  const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [showPlayer, setShowPlayer] = useState(false);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([
     {
       id: '1',
       title: 'TriTuf',
       type: 'audio',
-      src: sampleTrackUrl,
+      src: '/assets/TriTuf.wav',
       thumbnail: '/images/studio_microphone.jpeg',
       artist: 'Sharon Ravi',
-      description: 'A captivating composition with rich harmonies and dynamic rhythms.'
+      description: 'A captivating composition with rich harmonies and dynamic rhythms.',
+      duration: 180 // 3 minutes in seconds
     },
     {
       id: '2',
-      title: 'Studio Session',
+      title: 'December Session',
       type: 'audio',
-      src: sampleTrackUrl,
+      src: '/assets/04.12.2024.wav',
       thumbnail: '/images/mixing_console.jpeg',
       artist: 'Sharon Ravi',
-      description: 'An immersive sonic journey exploring new musical territories.'
+      description: 'An immersive sonic journey exploring new musical territories.',
+      duration: 240 // 4 minutes in seconds
     },
     {
       id: '3',
-      title: 'Harmonic Waves',
+      title: 'Creative Composition',
       type: 'audio',
-      src: sampleTrackUrl,
+      src: '/assets/2025 cc1.wav',
       thumbnail: '/images/studio_microphone.jpeg',
       artist: 'Sharon Ravi',
-      description: 'Layered textures and evolving harmonies create a mesmerizing atmosphere.'
+      description: 'Layered textures and evolving harmonies create a mesmerizing atmosphere.',
+      duration: 300 // 5 minutes in seconds
     }
   ]);
+  
+  // Don't select first track by default
+  const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
+
+  // Filter audio tracks for the SimpleAudioPlayer
+  const audioTracks = useMemo(() => 
+    mediaItems
+      .filter((item): item is MediaItem & { type: 'audio', artist: string } => 
+        item.type === 'audio' && item.artist !== undefined
+      )
+      .map(item => ({
+        id: item.id,
+        title: item.title,
+        artist: item.artist,
+        src: item.src,
+        thumbnail: item.thumbnail || '/images/audio_thumbnail.jpg',
+        duration: item.duration || 180 // Default to 3 minutes if not specified
+      })),
+    [mediaItems]
+  );
+
+  // Handle track change
+  const handleTrackChange = useCallback((index: number) => {
+    setCurrentTrackIndex(index);
+    setSelectedMedia(mediaItems[index]);
+    setShowPlayer(true);
+  }, [mediaItems]);
+
+  // Toggle player visibility
+  const togglePlayer = useCallback(() => {
+    setShowPlayer(!showPlayer);
+  }, [showPlayer]);
 
   const handleMediaSelect = (item: MediaItem) => {
-    setSelectedMedia(item);
-    setActiveTab('featured');
+    const index = mediaItems.findIndex(i => i.id === item.id);
+    if (index !== -1) {
+      setCurrentTrackIndex(index);
+      setSelectedMedia(item);
+      // Only show player for audio and video items
+      if (item.type === 'audio' || item.type === 'video') {
+        setShowPlayer(true);
+      }
+    }
   };
 
   const handleFileUpload = (file: File) => {
@@ -160,9 +202,69 @@ function App() {
         </div>
       </motion.header>
 
+      {/* Enhanced Audio Player */}
+      <AnimatePresence>
+        {showPlayer && selectedMedia && (
+          <motion.div 
+            className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 shadow-2xl border-t border-gray-200 dark:border-gray-800 z-50"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+          >
+            <div className="max-w-7xl mx-auto">
+              <div className="flex justify-end p-2">
+                <button 
+                  onClick={togglePlayer}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2"
+                  aria-label="Close player"
+                >
+                  <FaTimes size={20} />
+                </button>
+              </div>
+              <SimpleAudioPlayer 
+                tracks={audioTracks}
+                currentTrackIndex={currentTrackIndex}
+                onTrackChange={handleTrackChange}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Main Content */}
-      <main className="py-12 px-6 md:px-12 lg:px-24">
-        <div className="max-w-7xl mx-auto">
+      <main className="flex-1">        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {/* Tabs */}
+          <div className="border-b border-gray-200 dark:border-gray-700 mb-8">
+            <nav className="-mb-px flex space-x-8">
+              <motion.button
+                className={`px-4 py-2 rounded-lg text-base font-medium transition-colors ${activeTab === 'featured' ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:text-white hover:bg-indigo-900/50'}`}
+                onClick={() => setActiveTab('featured')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Featured
+              </motion.button>
+              <motion.button
+                className={`px-4 py-2 rounded-lg text-base font-medium transition-colors ${activeTab === 'gallery' ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:text-white hover:bg-indigo-900/50'}`}
+                onClick={() => setActiveTab('gallery')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Gallery
+              </motion.button>
+              <motion.button
+                className={`px-4 py-2 rounded-lg text-base font-medium transition-colors ${activeTab === 'contact' ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:text-white hover:bg-indigo-900/50'}`}
+                onClick={() => setActiveTab('contact')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Contact
+              </motion.button>
+            </nav>
+          </div>
+
           {/* Featured Content */}
           {activeTab === 'featured' && (
             <motion.div
@@ -193,10 +295,10 @@ function App() {
                     posterSrc={selectedMedia.thumbnail}
                   />
                 ) : (
-                  <AudioPlayer 
-                    audioSrc={selectedMedia?.src || sampleTrackUrl} 
-                    trackTitle={selectedMedia?.title || 'TriTuf'} 
-                    artistName={selectedMedia?.artist || 'Sharon Ravi'} 
+                  <SimpleAudioPlayer 
+                    tracks={audioTracks}
+                    currentTrackIndex={currentTrackIndex}
+                    onTrackChange={handleTrackChange}
                   />
                 )}
                 
