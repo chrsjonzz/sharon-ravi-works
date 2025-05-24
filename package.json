@@ -10,7 +10,15 @@
     "preview": "vite preview"
   },
   "resolutions": {
-    "date-fns": "^3.6.0"
+    "date-fns": "^3.6.0",
+    "rollup": "^3.29.4",
+    "@rollup/rollup-linux-x64-gnu": "^3.29.4",
+    "@rollup/rollup-linux-x64-musl": "^3.29.4"
+  },
+  "overrides": {
+    "rollup": "^3.29.4",
+    "@rollup/rollup-linux-x64-gnu": "^3.29.4",
+    "@rollup/rollup-linux-x64-musl": "^3.29.4"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -63,6 +71,13 @@
     "vaul": "^1.1.2",
     "wavesurfer.js": "^7.9.5",
     "zod": "^3.24.1"
+  },
+  "vite": {
+    "build": {
+      "rollupOptions": {
+        "external": ["@rollup/rollup-linux-x64-gnu", "@rollup/rollup-linux-x64-musl"]
+      }
+    }
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
