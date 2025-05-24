@@ -5,8 +5,7 @@
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist",
-        "buildCommand": "npm install && npm run build"
+        "distDir": "dist"
       }
     }
   ],
@@ -20,11 +19,5 @@
       "dest": "/index.html"
     }
   ],
-  "installCommand": "npm install --legacy-peer-deps",
-  "framework": "vite",
-  "buildCommand": "npm install && npm run build",
-  "devCommand": "vite",
-  "outputDirectory": "dist",
-  "regions": ["iad1"],
-  "nodeVersion": "18.x"
+  "installCommand": "npm install --legacy-peer-deps"
 }
